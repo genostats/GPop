@@ -1,22 +1,20 @@
 \name{genmap}
 \docType{data}
-\alias{genmap}
-\alias{centromere}
+\alias{genmapB36}
+\alias{genmapB37}
 
 \title{Genetic map data set}
 
 \description{
   The data set contains genetic maps from Hapmap or 1000 Genomes projects for build 36 and build 37 or GRCh37 respectively.
 }
-\usage{ data(genmap) }
+\usage{ data(genmapB36); data(genmapB37); }
 
 \format{
-  There are two data objects in the dataset:
+  There are two lists (\code{genmapB36} for NCBI36 assembly and \code{genmapB37} for GRCh37 assembly) of two:
   \describe{
-    \item{\code{genmap}}{ List of genetic maps for NCBI36 and GRCh37 assemblies as a data frames containing chromosom, base position, cM/Mb rate
-	                         and cM distance by chromosome.}
-     \item{\code{centromere}}{ List of two data frames containing for each chromosome the beguinning and the end of centromere for
-                              build 36 (\code{$B36}) and build 37 or GRCh37 (\code{$B37})}
+    \item{\code{genmap}}{ Data frames containing chromosom, base position, cM/Mb rate and cM distance by chromosome.}
+     \item{\code{centromere}}{ For each chromosome the beguinning and the end of centromere }
   }
 }
 
