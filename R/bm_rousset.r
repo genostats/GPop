@@ -19,19 +19,3 @@ Rousset <- function(x, which.snps, het_het=0.5, autosome.only = TRUE, chunk = 1L
 
   K
 }
-
-#reshape. <- function(K, include = c(-Inf, +Inf), exclude) {
-#  diag(K) <- NA
-#  if(missing(exclude))
-#    w <- which(include[1] < K & K < include[2])
-#  else 
-#    w <- which(include[1] < K & K < include[2] & (K < exclude[1] | K > exclude[2]))
-#  I <- row(K)[w]
-#  J <- col(K)[w]
-#  R <- K[w]
-#  ww <- (I < J)
-#  i <- I[ww];
-#  j <- J[ww];
-#  data.frame(i = i, j = j, id_i = rownames(K)[i], id_j = colnames(K)[j], k = R[ww])
-#}
-
