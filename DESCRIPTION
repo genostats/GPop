@@ -9,8 +9,8 @@ Maintainer: Claire Dandine-Roulland <Claire-Dandine-Roulland@u-psud.fr>
 Description: Gaston package extension for genetic population applications
 License: GPL-3
 LinkingTo: Rcpp, RcppParallel, RcppEigen, gaston
-Depends: Rcpp, RcppParallel, methods, gaston
-Imports: gaston
+Depends: Rcpp, RcppParallel, methods, gaston, parallel
+Imports:
 NeedsCompilation: yes
 LazyLoad: yes
 LazyData: yes
