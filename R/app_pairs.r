@@ -1,4 +1,4 @@
-app_pairs <- function(app, pairs, FUN=identity)
+app.pairs <- function(app, pairs, FUN=identity)
 {
   ## Verif
   if (!is.function(FUN)) stop('FUN must be a function')
@@ -35,7 +35,7 @@ app_pairs <- function(app, pairs, FUN=identity)
   return(FUN(app_couple))
 }
 
-app_unpairs <- function(app, pairs, FUN=identity)
+app.unpairs <- function(app, pairs, FUN=identity)
 {
   ## Verif
   if (!is.function(FUN)) stop('FUN must be a function')

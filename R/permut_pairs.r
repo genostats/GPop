@@ -17,9 +17,11 @@ app.permut <- function(app, permut.pairs, group=rep(1:nrow(app)), FUN, unpairs=F
   
   if (!is.list(fixed.pairs) & !is.null(fixed.pairs)) fixed.pairs <- list(fixed.pairs)
   
+  if (is.list(fixed.pairs)) tt <- c(list(permut.pairs), fixed.pairs) else tt <- permut.pairs
+  if (unpairs) app_pairs <- app_unpairs(app, tt, FUN=FUN) else app_pairs <- app_pairs(app, tt, FUN=FUN)
+  
   t <- rep(NA, n)
   
-  if (unpairs) app_pairs <- app_unpairs(app, permut.pairs, FUN=FUN) else app_pairs <- app_pairs(app, permut.pairs, FUN=FUN)
   
   if (thread>1)
   {

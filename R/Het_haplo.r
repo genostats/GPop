@@ -14,10 +14,11 @@ bedtogeno <- function(bed)
 
 #### Haplotype Heterozygosity 
 
-het_haplo <- function(x, map=c('B36','B37'), block=0.5, minl=1, maxl=+Inf, thread)
+het.haplo <- function(bed, map=c('B36','B37'), block=0.5, minl=1, maxl=+Inf, thread=1)
 {
   # load of genetic map
-  if (mapgen %in% c('B36','B37') ) { data(paste('genmap', map, sep='')); map <- eval(paste(text=paste('genmap', map, sep='')))$genmap; }
+  if (map=='B36') { data('genmapB36'); map <- genmapB36$genmap; }
+  else if (map=='B37') { data('genmapB37'); map <- genmapB37$genmap; }
   else if (is.data.frame(map)) if (names(map)!=c("chr", "base", "rate.cM.Mb", "cM")) stop("'map' must contains 'chr', 'base', 'rate.cM.Mb' and 'cM' variables")
   else stop("'map' must be equal to 'B36' or 'B37' or a data frame")
 
@@ -32,18 +33,16 @@ het_haplo <- function(x, map=c('B36','B37'), block=0.5, minl=1, maxl=+Inf, threa
 
     # create cluster
     RNGkind("L'Ecuyer-CMRG")
-    #if (!is.character(bed))
+    #if (is.character(bed))
     #{
-      cl <- makeForkCluster(nnodes=thread)
-      clusterSetRNGStream(cl, runif(1)*(2**31-1) )
-    #} else {
     #  cl <- makeCluster(thread)
     #  clusterSetRNGStream(cl, runif(1)*(2**31-1) )
-    #  clusterCall(cl, function() library(gaston))
-    #  clusterCall(cl, function() library(gaston.pop))
-    #  clusterCall(cl, function() { library(RhpcBLASctl); blas_set_num_threads(1); })
-    #  clusterExport(cl, c("app_genome_chr", "app_couple", "z_score", "mean_couple"), envir=globalenv())
-    #  clusterExport(cl, c("ind", "snps", "map", "relatedness", "method", "bed", "length", "wind.bp", "length.snp", "wind.snp", "centro", "LD"), envir=environment())
+    #  clusterCall(cl, function() library(haplo.stats))
+    #  clusterExport(cl, c("het.haplo.chr"), envir=globalenv())
+    #  clusterExport(cl, c("map", "bed", "block", "minl", "maxl"), envir=environment())
+    #} else {
+      cl <- makeForkCluster(nnodes=thread)
+      clusterSetRNGStream(cl, runif(1)*(2**31-1) )
     #}
     
     r <- parLapply(cl, xx, function(i) {
@@ -54,8 +53,8 @@ het_haplo <- function(x, map=c('B36','B37'), block=0.5, minl=1, maxl=+Inf, threa
           return(NULL)}
       } else chr <- select.snps(bed, chr==i)
       if (ncol(chr)==0) {warnings(paste('None SNP i chromosome', i)); return(NULL);}
-      t <- map[map$chr==i,2:4]
-      het_haplo_chr(chr, t, block=block, minl=minl, maxl=maxl, method=method, plink=plink)} )
+      t <- map[map$chr==i,]
+      het.haplo.chr(chr, t, block=block, minl=minl, maxl=maxl)} )
     stopCluster(cl)
     r <- r[order(xx)]
   } else {
@@ -70,15 +69,17 @@ het_haplo <- function(x, map=c('B36','B37'), block=0.5, minl=1, maxl=+Inf, threa
       } else chr <- select.snps(bed, chr==i)
       if (ncol(chr)==0) {warnings(paste('None SNP i chromosome', i)); next;}
       print(i)
-      t <- map[map$chr==i,2:4]
-      r[[i]] <- het_haplo_chr(chr, t, block=block, minl=minl, maxl=maxl, method=method, plink=plink)
+      t <- map[map$chr==i,]
+      r[[i]] <- het.haplo.chr(chr, t, block=block, minl=minl, maxl=maxl)
     }
   }
+  names(r) <- paste0('chr', 1:22)
+  return(r)
 }
          
 
 ## By chromosome
-het_haplo_chr <- function(chr, map, block=0.5, minl=1, maxl=+Inf)
+het.haplo.chr <- function(chr, map, block=0.5, minl=1, maxl=+Inf)
 {
   # Verify order of SNP
   if (is.unsorted(chr@snps$pos)) chr <- chr[, order(chr@snps$pos)]
@@ -112,11 +113,14 @@ het_haplo_chr <- function(chr, map, block=0.5, minl=1, maxl=+Inf)
   b <- b[which(unlist(lapply(b, length))>=minl & unlist(lapply(b, length))<=maxl)]
 
   het <- rep(0, length(b))
+  if (length(b)==0) return(NA)
   for (i in 1:length(b))
   {
     temp <- select.snps(chr, id %in% b[[i]])
-    temp <- bedtogeno(temp)
-    het[i] <- 2*nrow(chr)/(2*nrow(chr)-1)*(1-sum(haplo.em(temp$geno, temp$locus, miss.val=NA)$hap.prob**2))
+	if (ncol(temp)==1) het[i] <- temp@snps$hz else {
+      temp <- bedtogeno(temp)
+      het[i] <- 2*nrow(chr)/(2*nrow(chr)-1)*(1-sum(haplo.em(temp$geno, temp$locus, miss.val=NA)$hap.prob**2))
+	}
   }
   return(list(het=het, blocks=b))
 }

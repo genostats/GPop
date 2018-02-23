@@ -18,7 +18,7 @@
 
 \details{
   The Rousset relatedness coefficient between two individuals i and j, is defined as
-  \eqn{R_{ij}=\frac{Q_{ij}- Q_m}{1-Q_m}
+  \eqn{R_{ij}=\frac{Q_{ij}- Q_m}{1-Q_m}}
   where \eqn{Q_{ij}} is the proportion of variants which are identical by state between the two individuals and \eqn{Q_m} is the
   mean proportion of variants which are identical by state in the population. At a given SNP, the proportion of identical variants
   for a given pair of individuals was set to 0 if both individuals were homozygous and carrying a different allele (e.g. 00 and 11),
@@ -28,10 +28,12 @@
 
 \value{
   A list of three.
-  \item{Rousset} { Rousset relatedness coefficient Matrix which is a symmetric square matrix of dimension equal to the number of
-                 individuals}
-  \item{F} { Matrix of \eqn{Q_{ij}} values given in details section}
-  \item{Qm} {\eqn{Q_m} value given in details section}
+  
+  \code{Rousset} element is the Rousset relatedness coefficient Matrix which is a symmetric square matrix of dimension equal to the number of individuals.
+  
+  \code{F} element contains the matrix of \eqn{Q_{ij}} values given in details section.
+  
+  \code{Qm} element is the \eqn{Q_m} value given in details section.
 }
 
 \author{ Claire Dandine-Roulland }

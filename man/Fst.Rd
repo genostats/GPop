@@ -16,9 +16,9 @@
 \value{
   A List of two.
   
-  First element is a data frame, giving for each considered SNP, some of the following columns :
-  \item{a, b and c} {Fst computation elements defined by Weir and Cockerham}
-  \item{Fst} {Fst}
+  First element is a data frame giving, for each considered SNP, \code{a}, \code{b} and \code{c} computation elements
+  defined by Weir and Cockerham and Fst.
+  
   Second element gives global Fst computed on all considered SNPs.
 }
 
