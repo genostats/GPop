@@ -1,3 +1,4 @@
+import(parallel)
 import(methods)
 import(gaston)
 importFrom("grDevices", "heat.colors", "dev.off", "pdf", "rgb")
@@ -9,4 +10,4 @@ importFrom("RcppParallel", "setThreadOptions", "defaultNumThreads")
 
 useDynLib(gaston.pop, .registration = TRUE)
 
-export(Fst, Rousset)
+export(Fst, Rousset, het_haplo)
