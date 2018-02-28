@@ -43,5 +43,6 @@ app.permut <- function(app, permut.pairs, group=rep(1:nrow(app)), FUN, unpairs=F
 			   if (unpairs) z <- app_unpairs(app, tt, FUN=FUN) else z <- app_pairs(app, tt, FUN=FUN)
                return(z)  } )
 			   
-  return(list(app_pairs=app_pairs, permut=r))
+  return(list(app_pairs=app_pairs, permut=r, twosided.p = mean(abs(r-mean(r))>abs(app_pairs-mean(r))),
+              low.onesided.p=mean(r<app_pairs), up.onesided.p=mean(r>app_pairs)))
 }
