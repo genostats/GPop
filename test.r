@@ -106,3 +106,36 @@ sum(t$chr21!=tt$chr21)
 sum(t$chr22!=tt$chr22)
 
 
+
+
+
+x <- select.snps(read.bed.matrix("Example"), chr==22 & pos<3600000*10 & maf>0.05)
+data(LCT)
+x <- select.inds(x, id %in% LCT.fam$id)
+x@ped$famid <- LCT.pop[LCT.fam$id %in% x@ped$id]
+x <- select.snps(x, maf>0.05)
+
+app_genome( x, relatedness='Rousset', method='mean', thread=1, build='B37' )[[22]] -> t
+
+source('~/Mixed Model/Package R Gaston/gaston.pop/R/across_genome.r')
+rouss <- function(x) Rousset(x)$Rousset
+tt <- app.genome(x, as.numeric(x@ped$famid), FUN=mean, relatedness=rouss, windows=3600000, unit="base", sliding=300000, thread=1, map='B37', LD.thin=NULL)
+
+sum(t$start!=tt$start)
+sum(t$end!=tt$end)
+sum(t$centro!=tt$centro)
+sum(t$num!=tt$num, na.rm=T)
+sum(t$recombi_region!=tt$recombi_region, na.rm=T)
+t[which(tt$recombi_region!=t$recombi_region),]
+tt[which(tt$recombi_region!=t$recombi_region),]
+sum(t$recombi_all!=tt$recombi_snps, na.rm=T)
+t[which(t$recombi_all!=tt$recombi_snps),]
+tt[which(t$recombi_all!=tt$recombi_snps),]
+
+sum(t$LD!=tt$LD, na.rm=T)
+sum(t$LD_sd!=tt$LD_sd, na.rm=T)
+sum(t$maf!=tt$maf, na.rm=T)
+sum(t$maf_sd!=tt$maf_sd, na.rm=T)
+
+sum(t$rousset_mean!=tt$rouss_mean, na.rm=T)
+

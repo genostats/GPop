@@ -1,22 +1,31 @@
-app_genome_test <- function(bed, FUN=mean, relatedness=c('GRM', 'Rousset'), length=3600000, wind.bp=300000, length.snp=NULL, wind.snp=NULL, thread=22, mapgen='All_Hapmap', build='B36', LD=NULL, het_het=0.5)
+app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("bases", "indices"), sliding, thread=22, centromere=NULL, map='B36', LD.thin=NULL)
 {
-  # load of genetic map
-  if (build=='B36') {
-    if (mapgen %in% c('All_Hapmap', 'CEU_YRI_Hapmap', 'CEU_1000G') ) map <- genmapB36[[mapgen]] else stop("'mapgen' option is not valid")
-  } else if (build=='B37') {
-    if (mapgen %in% c('All_1000G') ) map <- genmapB37[[mapgen]] else stop("'mapgen' option is not valid")
-  } else stop("'build' option is not valid")
+  ## Verif
+  if (!is.function(FUN) & !is.list(FUN)) stop('"FUN" argument must be a function of a list of functions')
+  if (is.list(FUN)) for (i in 1:length(FUN)) if (!is.function(FUN[i])) stop('"FUN" argument must be a function of a list of functions')
+  if (is.function(FUN)) { f <- as.character(substitute(FUN)); FUN <- list(FUN); names(FUN) <- f; }
+  
+  if (!is.function(relatedness)) stop('"relatedness" argument must be a function')
+  if (is.list(relatedness)) for (i in 1:length(relatedness)) if (!is.function(relatedness[i])) stop(relatedness)
+  if (is.function(relatedness)) { f <- as.character(substitute(relatedness)); relatedness <- list(relatedness); names(relatedness) <- f; }
 
-  # load centromere place for each chromosom
-  centro <- centromere[[build]]
+  # load of genetic map
+  if (map=='B36') { data('genmapB36'); map <- genmapB36$genmap; centro <- genmapB36$centromere; }
+  else if (map=='B37') { data('genmapB37'); map <- genmapB37$genmap; centro <- genmapB37$centromere; }
+  else if (is.data.frame(map)) {
+    if (names(map)!=c("chr", "base", "rate.cM.Mb", "cM")) stop("'map' must contains 'chr', 'base', 'rate.cM.Mb' and 'cM' variables")
+	if (is.null(centromere)) stop("If 'map' is a data frame, 'centromere' argument must be given")
+	if (!is.data.frame(centromere)) stop("'centromere' argument must be a data frame")
+	if (names(map)!=c("chr", "start", "end")) stop("'map' must contains 'chr', 'start', 'end' variables, one line by chromosome")
+  }
+  else stop("'map' must be equal to 'B36' or 'B37' or a data frame")
   
   if (thread>1) { RNGkind("L'Ecuyer-CMRG"); cl <- makeForkCluster(nnodes=thread); }
   
   if (is.character(bed))
   {
-    
     snps <- read.table(paste(bed, '.bim', sep=''))
-  } else if (is.bed.matrix(bed))
+  } else if (class(bed) == "bed.matrix")
   {
     snps <- bed@snps
   } else {
@@ -25,90 +34,126 @@ app_genome_test <- function(bed, FUN=mean, relatedness=c('GRM', 'Rousset'), leng
   }
  
   result <- NULL
-  for (i in snps$chr)
+  for (i in unique(snps$chr))
   {
-    if (is.null(wind.bp))
+    w <- snps[snps$chr==i,]
+    if (unit=='indices')
 	{
-	  w <- snps[snps$chr==i,]
-	  temp <- data.frame(chr=i, start=w$pos[seq(1, floor(nrow(w)/wind.snp)*wind.snp, by=wind.snp)] )
-      temp$end <- w$pos[seq(1, floor(nrow(w)/wind.snp)*wind.snp, by=wind.snp)+length.snp]
-      temp$end[length(temp$end)] <- w$pos[nrow(w)]
-	  temp$index.start <- seq(1, floor(nrow(w)/wind.snp)*wind.snp, by=wind.snp)
-	  temp$index.end <- seq(1, floor(nrow(w)/wind.snp)*wind.snp, by=wind.snp)+length.snp
-	  temp$recombi_all <- apply(cbind(temp$start, temp$end), 1, function(x) mean( map[[paste('chr', i, sep='')]]$rate.cM.Mb[ map[[paste('chr', i, sep='')]]$base>=x[1] & map[[paste('chr', i, sep='')]]$base<=x[2] ] ) )
-	  temp$recombi_region <- apply(cbind(temp$start, temp$end), 1, function(x) {
-        n <- which(map[[paste('chr', i, sep='')]]$base<=x[2] & map[[paste('chr', i, sep='')]]$base>=x[1]); ifelse(
-	                         length(n)==1, map[[paste('chr', i, sep='')]]$rate.cM.Mb[n],
-							 ( map[[paste('chr', i, sep='')]]$cM[ max(w) ] - map[[paste('chr', i, sep='')]]$cM[ w[1] ] )/( map[[paste('chr', i, sep='')]]$base[ max(w) ]/1e6 - map[[paste('chr', i, sep='')]]$base[ w[1] ]/1e6 ));})
-    } else {
-	  w <- snps[snps$chr==i,]
-      temp <- data.frame(chr=i, start=seq(0, as.integer(ceiling( max(w$pos)/wind.bp )*wind.bp), by=wind.bp) )
-      temp$end <- temp$start + length
- 	  temp$index.start <- sapply(seq(0, as.integer(ceiling( max(w$pos)/wind.bp )*wind.bp), by=wind.bp), function(x) which.min(ifelse(w$pos>=result$start[i], w$pos, Inf)) )
-	  temp$index.end <- sapply(seq(0, as.integer(ceiling( max(w$pos)/wind.bp )*wind.bp), by=wind.bp), function(x) which.max(ifelse(w$pos<result$end[i], w$pos, -Inf)) )
-	  temp$recombi_all <- apply(cbind(temp$start, temp$end), 1, function(x) mean( map[[paste('chr', i, sep='')]]$rate.cM.Mb[ map[[paste('chr', i, sep='')]]$base>=x[1] & map[[paste('chr', i, sep='')]]$base<=x[2] ] ) )
-	  temp$recombi_region <- apply(temp[,2:3], 1, function(x) {
-        n <- which(map[[paste('chr', i, sep='')]]$base<=x[2] & map[[paste('chr', i, sep='')]]$base>=x[1]); ifelse(
-	                         length(n)==1, map[[paste('chr', i, sep='')]]$rate.cM.Mb[n],
-							 ( map[[paste('chr', i, sep='')]]$cM[ max(n) ] - map[[paste('chr', i, sep='')]]$cM[ n[1] ] )/( map[[paste('chr', i, sep='')]]$base[ max(n) ]/1e6 - map[[paste('chr', i, sep='')]]$base[ n[1] ]/1e6 ));})
-   }
+	  temp <- data.frame(chr=i, start=NA, end=NA, index.start= seq(1, floor((nrow(w)-1)/sliding)*sliding, by=sliding), index.end=NA)
+	  temp$index.end <- temp$index.start + windows
+	  temp$index.end[nrow(temp)] <- nrow(w)
+	  temp$start <- w$pos[temp$index.start]
+	  temp$end <- w$pos[temp$index.end]
+	} else if (unit=='base')
+	{
+	  temp <- data.frame(chr=i, start=seq(0, as.integer(ceiling( max(w$pos)/sliding )*sliding), by=sliding), end=NA, index.start=NA, index.end=NA)
+	  temp$end <- temp$start + windows
+	  temp$index.start <- sapply(temp$start, function(i) which.min( ifelse( w$pos>=i, w$pos, Inf ) ) )
+	  temp$index.end <- sapply(temp$end, function(i) which.max( ifelse(w$pos<i, w$pos, -Inf) ) )
+	} else stop("'unit' must be equal to 'base' or 'indices'")
+	
+	temp$recombi_snps <- apply(cbind(temp$start, temp$end), 1, function(x) mean( map$rate.cM.Mb[ map$chr==i & map$base>=x[1] & map$base<=x[2] ] ) )
+	temp$recombi_region <- apply(cbind(temp$start, temp$end), 1, function(x) {
+        w <- which(map$chr==i & map$base>=x[1] & map$base<=x[2]); 
+		if (length(w)==0) return(NA)
+		else if (length(w)==1) return(map$rate.cM.Mb[w])
+		else return( diff(range( map$cM[ w ] ))/diff(range( map$base[ w ]/1e6 )) ) })
+
     result <- rbind(result, temp)
   }
-  rm(temp,x,w)
+  rm(temp, w)
   result$centro <- ( (result$start > centro$start[result$chr] & result$start < centro$end[result$chr]) | (result$end > centro$start[result$chr] & result$end < centro$end[result$chr]) | (result$end > centro$end[result$chr] & result$start < centro$start[result$chr]) )
  
   #if(!file.exists(paste(bed, 'bed',sep='.')))
   
+  result$num <- NA
+  result$LD <- NA
+  result$LD_sd <- NA
+  result$maf <- NA
+  result$maf_sd <- NA
+  
+  w <- names(relatedness)
+  ww <- names(FUN)
+  for (i in w) for (j in ww) result[paste(i, j, sep='_')] <- NA
+
   if (thread>1)
   {
-    e <- environment()
-	
-	withGlobals <- function(FUN, ...){ 
-    environment(FUN) <- list2env(list(...)) 
-    FUN 
-} 
-
-    # create cluster
+    if (class(bed) == "bed.matrix") {
+	  time <- paste(c('temp_gaston.pop', strsplit(date(), ' ')[[1]][strsplit(date(), ' ')[[1]]!='']), collapse='_')
+      for (i in unique(bed@snps$chr)) write.bed.matrix(select.snps(bed, chr==i), paste(c('temp_gaston.pop', time, 'chr', i), collapse='_'), rds=NULL)
+    }
+	bed <-  paste(c('temp_gaston.pop', time, 'chr'), collapse='_')
     RNGkind("L'Ecuyer-CMRG")
-    cl <- makeCluster(thread)
-    clusterSetRNGStream(cl, runif(1)*(2**31-1) )
-    clusterCall(cl, function() library(gaston))
-    clusterCall(cl, function() library(gaston.pop))
-    clusterExport(cl, c("map", "LD", "FUN", "e", "result"), envir=environment())
+    cl <- makeForkCluster(nnodes=thread)
+  
+	result[,-(1:8)] <- matrix( parRapply(cl, cbind(result$chr, result$start, result$end), function(r) {
+	  #if (is.character(bed))
+	  x <- select.snps(read.bed.matrix(paste(c(bed, r[1]), collapse='_')), chr==r[1] & pos>=r[2] & pos<r[3])
+      #else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==r[1] & pos>=r[2] & pos<r[3])	
 
-	r <- parRapply(cl, cbind(result$chr, result$start, result$end), withGlobals( function(i) {
-	  #x <- read.bed.matrix.part(bed, beg=result$index.start[i], end=result$index.end[i])
-	  print('ici')
-	  t <- list()
-      t$num <- ncol(x)
+	  if(ncol(x)==0) return(rep(NA, 4+length(relatedness)*length(FUN)))
       if (ncol(x)>0) {
-        standardize(x) <- 'p'
-        if (!is.null(LD) & ncol(x)>1) l <- LD.thin(x, LD, extract=TRUE)
-        t$num <- ncol(x)
+	    standardize(x) <- "mu_sigma"
+        if (!is.null(LD.thin) & ncol(x)>1) l <- LD.thin(x, LD.thin, extract=TRUE)
+        r <- ncol(x)
         #if (sum(map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos)>0)  t$recombi <- map[[paste('chr', unique(x@snps$chr), sep='')]]( map[[paste('chr', unique(x@snps$chr), sep='')]]$rate.cM.Mb[ map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos ], na.rm=TRUE)
       }
 
       # LD
-      L <- LD(x, lim=c(1,ncol(l)))
+      L <- LD(x, lim=c(1,ncol(x)))
 	  L <- L[lower.tri(L, diag=FALSE)]
-      t$LD <- mean(L)
-      t$LD_sd <- sd(L)
-      t$maf <- mean(x@snps$maf)
-      t$maf_sd <- sd(x@snps$maf)
-     
-      if ('GRM' %in% relatedness)
+
+      r <- c(r, mean(L) )
+      r <- c(r, sd(L) )
+      r <- c(r, mean(x@snps$maf) )
+      r <- c(r, sd(x@snps$maf) )
+
+	  standardize(x) <- 'p'
+      for (rel in relatedness)
       {
-        app <- GRM(x)
-		for (f in FUN) t[[paste('grm', deparse(quote(f)), sep='_')]] <- f(app, x)
+        app <- rel(x)
+		for (f in FUN) {
+		  t <- app.pairs(app, couple, FUN=f)
+		  if (length(t) >1) {r <- c(r, NA); warning("FUN element(s) must be function with result value of length 1"); }
+		  else  r <- c(r, t)
+		}
       }
-      if ('Rousset' %in% relatedness)
-      {
-        app <- Rousset(x, het_het)$Rousset
-		for (f in FUN) t[[paste('rousset', deparse(quote(f)), sep='_')]] <- f(app, x)
-      }
-      return(result) }, x=bed) )
+      return(r) }), ncol=length(rel)*length(f), byrow=TRUE)
     stopCluster(cl)
-  } else r <- NA
+  } else {
+    for (k in 1:nrow(result))
+	{
+	  if (is.character(bed)) x <- select.snps(read.bed.matrix(bed), chr==result$chr[k] & pos>=result$start[k] & pos<result$end[k])
+      else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==result$chr[k] & pos>=result$start[k] & pos<result$end[k])	
+
+	  if(ncol(x)==0) next
+      if (ncol(x)>0) {
+        standardize(x) <- 'mu_sigma'
+        if (!is.null(LD.thin) & ncol(x)>1) l <- LD.thin(x, LD.thin, extract=TRUE)
+        result$num[k] <- ncol(x)
+        #if (sum(map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos)>0)  t$recombi <- map[[paste('chr', unique(x@snps$chr), sep='')]]( map[[paste('chr', unique(x@snps$chr), sep='')]]$rate.cM.Mb[ map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos ], na.rm=TRUE)
+      }
+
+      # LD
+      L <- LD(x, lim=c(1,ncol(x)))
+	  L <- L[lower.tri(L, diag=FALSE)]
+      result$LD[k] <- mean(L)
+      result$LD_sd[k] <- sd(L)
+      result$maf[k] <- mean(x@snps$maf)
+      result$maf_sd[k] <- sd(x@snps$maf)
+
+	  standardize(x) <- 'p'
+      for (i in 1:length(relatedness))
+      {
+        app <- relatedness[[i]](x)
+		for (j in 1:length(FUN)) {
+		  t <- app.pairs(app, couple, FUN=FUN[[j]])
+		  if (length(t)>1) warning("FUN element(s) must be function with result value of length 1")
+		  else  result[k, paste(w[i], ww[j], sep='_')] <- t
+		}
+      }
+    }
+  }
   
-  return(r)
+  return(result)
 }

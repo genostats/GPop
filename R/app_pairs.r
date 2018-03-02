@@ -7,7 +7,7 @@ app.pairs <- function(app, pairs, FUN=identity)
   if (ncol(app)!=nrow(app)) stop('app must be a squarred matrix')
   n <- nrow(app)
   
-   if (is.vector(pairs) & !is.list(pairs))
+   if ( (is.vector(pairs) | is.factor(pairs) ) & !is.list(pairs))
   {
     if (length(pairs)!=n) stop('Dimensions of app and pairs mismatch')
 	
@@ -44,7 +44,7 @@ app.unpairs <- function(app, pairs, FUN=identity)
   if (ncol(app)!=nrow(app)) stop('app must be a squarred matrix')
   n <- nrow(app)
   
-  if (is.vector(pairs) & !is.list(pairs))
+  if ( (is.vector(pairs) | is.factor(pairs) ) & !is.list(pairs))
   {
     if (length(pairs)!=n) stop('Dimensions of app and pairs mismatch')
 	
