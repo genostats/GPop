@@ -27,6 +27,7 @@
 
 \details{
   Compute the genetic relatedness and apply given function(s) for all sliding windows of given length \code{windows} in increments of \code{sliding}.
+}
 
 \value{
   A data.frame (one line by genomic region) with columns :
