@@ -1,24 +1,35 @@
-app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("bases", "indices"), sliding, thread=22, centromere=NULL, map='B36', LD.thin=NULL)
+app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", "indices"), map='B37', centromere=NULL, LD.thin=NULL, thread=22)
 {
   ## Verif
   if (!is.function(FUN) & !is.list(FUN)) stop('"FUN" argument must be a function of a list of functions')
   if (is.list(FUN)) for (i in 1:length(FUN)) if (!is.function(FUN[i])) stop('"FUN" argument must be a function of a list of functions')
-  if (is.function(FUN)) { f <- as.character(substitute(FUN)); FUN <- list(FUN); names(FUN) <- f; }
+  if (is.function(FUN)) { f <- as.character(substitute(FUN)); FUN <- list(FUN); names(FUN) <- ifelse(length(f)>1, 'function1', f); }
   
   if (!is.function(relatedness)) stop('"relatedness" argument must be a function')
   if (is.list(relatedness)) for (i in 1:length(relatedness)) if (!is.function(relatedness[i])) stop(relatedness)
-  if (is.function(relatedness)) { f <- as.character(substitute(relatedness)); relatedness <- list(relatedness); names(relatedness) <- f; }
+  if (is.function(relatedness)) { f <- as.character(substitute(relatedness)); relatedness <- list(relatedness); names(relatedness) <- ifelse(length(f)>1, 'relatedness1', f); }
 
   # load of genetic map
-  if (map=='B36') { data('genmapB36'); map <- genmapB36$genmap; centro <- genmapB36$centromere; }
-  else if (map=='B37') { data('genmapB37'); map <- genmapB37$genmap; centro <- genmapB37$centromere; }
-  else if (is.data.frame(map)) {
+  if (map=='B36') {
+    data('genmapB36')
+	map <- genmapB36$genmap
+	if (is.null(centromere)) centromere <- genmapB36$centromere else {
+	  if (!is.data.frame(centromere)) stop("'centromere' argument must be NULL or a data frame")
+	  if (names(centromere)!=c("chr", "start", "end")) stop("'centromere' must contains 'chr', 'start', 'end' variables, one line by chromosom")
+	}
+  } else if (map=='B37') {
+    data('genmapB37')
+	map <- genmapB37$genmap
+	if (is.null(centromere)) centromere <- genmapB37$centromere else {
+	  if (!is.data.frame(centromere)) stop("'centromere' argument must be NULL or a data frame")
+	  if (names(centromere)!=c("chr", "start", "end")) stop("'centromere' must contains 'chr', 'start', 'end' variables, one line by chromosom")
+	}
+  } else if (is.data.frame(map)) {
     if (names(map)!=c("chr", "base", "rate.cM.Mb", "cM")) stop("'map' must contains 'chr', 'base', 'rate.cM.Mb' and 'cM' variables")
 	if (is.null(centromere)) stop("If 'map' is a data frame, 'centromere' argument must be given")
 	if (!is.data.frame(centromere)) stop("'centromere' argument must be a data frame")
-	if (names(map)!=c("chr", "start", "end")) stop("'map' must contains 'chr', 'start', 'end' variables, one line by chromosome")
-  }
-  else stop("'map' must be equal to 'B36' or 'B37' or a data frame")
+	if (names(centromere)!=c("chr", "start", "end")) stop("'centromere' must contains 'chr', 'start', 'end' variables, one line by chromosom")
+  } else stop("'map' must be equal to 'B36' or 'B37' or a data frame")
   
   if (is.character(bed))
   {
@@ -64,7 +75,9 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
     result <- rbind(result, temp)
   }
   rm(temp, w)
-  result$centro <- ( (result$start > centro$start[result$chr] & result$start < centro$end[result$chr]) | (result$end > centro$start[result$chr] & result$end < centro$end[result$chr]) | (result$end > centro$end[result$chr] & result$start < centro$start[result$chr]) )
+  result$centro <- ( (result$start > centromere$start[result$chr] & result$start < centromere$end[result$chr]) |
+                     (result$end > centromere$start[result$chr] & result$end < centromere$end[result$chr]) |
+					 (result$end > centromere$end[result$chr] & result$start < centromere$start[result$chr]) )
  
   #if(!file.exists(paste(bed, 'bed',sep='.')))
   
@@ -87,7 +100,14 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
     }
 	
     RNGkind("L'Ecuyer-CMRG")
-    cl <- makeForkCluster(nnodes=thread)
+	cl <- makeForkCluster(nnodes=thread)
+    #cl <- makeCluster(thread)
+	#lib <- eval(.libPaths(), envir=.GlobalEnv)
+	#lib <- lib[length(lib)]
+    #clusterExport(cl, c("result", "relatedness", "FUN", "LD", "bed", "couple", "lib"), envir=environment())
+	#clusterCall(cl, function() .libPaths(lib))
+    #clusterCall(cl, function() library(gaston))
+    #clusterCall(cl, function() library(gaston.pop))
   
 	result[,-(1:8)] <- matrix( parRapply(cl, cbind(result$chr, result$start, result$end, result$index.start, result$index.end), function(xx) {
 	  if (is.na(xx[4]) | is.na(xx[5])) return(rep(NA, 5+length(relatedness)*length(FUN)))
@@ -116,8 +136,8 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
       {
         app <- relatedness[[i]](x)
 		for (j in 1:length(FUN)) {
-		  t <- app.pairs(app, couple, FUN=FUN[[j]])
-		   if (length(t)>1) warning("FUN element(s) must be function with result value of length 1")
+		  t <- FUN[[j]](app)
+		  if (length(t)>1) warning("FUN element(s) must be function with result value of length 1")
 		  else  r <- c(r, t)
 		}
       }
@@ -153,7 +173,7 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
       {
         app <- relatedness[[i]](x)
 		for (j in 1:length(FUN)) {
-		  t <- app.pairs(app, couple, FUN=FUN[[j]])
+		  t <- FUN[[j]](app)
 		  if (length(t)>1) warning("FUN element(s) must be function with result value of length 1")
 		  else  result[k, paste(w[i], ww[j], sep='_')] <- t
 		}

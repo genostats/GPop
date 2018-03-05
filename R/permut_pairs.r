@@ -9,10 +9,10 @@ app.permut <- function(app, permut.pairs, group=rep(1:nrow(app)), FUN, unpairs=F
 
   if(!is.logical(unpairs)) stop('unpairs must be a boolean')
   
-  if (!is.vector(permut.pairs)) stop('permut.pairs must be a vector')
+  if (!is.vector(permut.pairs) & !is.factor(permut.pairs)) stop('permut.pairs must be a vector')
   if (length(permut.pairs)!=n) stop('Dimensions of app and permut.pairs mismatch')
   
-  if (!is.vector(group)) stop('group must be a vector')
+  if (!is.vector(group) & !is.factor(group)) stop('group must be a vector')
   if (length(group)!=n) stop('Dimensions of app and group mismatch')
   
   if (!is.list(fixed.pairs) & !is.null(fixed.pairs)) fixed.pairs <- list(fixed.pairs)

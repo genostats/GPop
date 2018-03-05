@@ -21,7 +21,7 @@ app.pairs <- function(app, pairs, FUN=identity)
 	app_couple <- app[lower.tri(app, diag = FALSE) & pairs ]
   } else if (is.list(pairs))
   {
-    if ( !any(sapply(list(couple, list()), function(x) (!is.vector(x) & !is.matrix(x)) | is.list(x))) ) stop('pairs must be a list of vectors or squarred matrix')
+    if ( !any(sapply(list(pairs, list()), function(x) (!is.vector(x) & !is.matrix(x)) | is.list(x))) ) stop('pairs must be a list of vectors or squarred matrix')
 	
 	temp <- matrix(TRUE, n, n)
 	for (i in 1:length(pairs))
@@ -58,7 +58,7 @@ app.unpairs <- function(app, pairs, FUN=identity)
 	app_couple <- app[lower.tri(app, diag = FALSE) & !pairs ]
   } else if (is.list(pairs))
   {
-    if ( !any(sapply(list(couple, list()), function(x) (!is.vector(x) & !is.matrix(x)) | is.list(x))) ) stop('pairs must be a list of vectors or squarred matrix')
+    if ( !any(sapply(list(pairs, list()), function(x) (!is.vector(x) & !is.matrix(x)) | is.list(x))) ) stop('pairs must be a list of vectors or squarred matrix')
 	
 	temp <- matrix(FALSE, n, n)
 	for (i in 1:length(pairs))
