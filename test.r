@@ -120,6 +120,7 @@ app_genome( x, relatedness='Rousset', method='mean', thread=1, build='B37' )[[22
 source('~/Mixed Model/Package R Gaston/gaston.pop/R/across_genome.r')
 rouss <- function(x) Rousset(x)$Rousset
 tt <- app.genome(x, as.numeric(x@ped$famid), FUN=mean, relatedness=rouss, windows=3600000, unit="base", sliding=300000, thread=1, map='B37', LD.thin=NULL)
+ttt <- app.genome(x, as.numeric(x@ped$famid), FUN=mean, relatedness=rouss, windows=3600000, unit="base", sliding=300000, thread=2, map='B37', LD.thin=NULL)
 
 sum(t$start!=tt$start)
 sum(t$end!=tt$end)
@@ -138,4 +139,24 @@ sum(t$maf!=tt$maf, na.rm=T)
 sum(t$maf_sd!=tt$maf_sd, na.rm=T)
 
 sum(t$rousset_mean!=tt$rouss_mean, na.rm=T)
+
+
+
+sum(t$start!=ttt$start)
+sum(t$end!=ttt$end)
+sum(t$centro!=ttt$centro)
+sum(t$num!=ttt$num, na.rm=T)
+sum(t$recombi_region!=ttt$recombi_region, na.rm=T)
+t[which(ttt$recombi_region!=t$recombi_region),]
+ttt[which(ttt$recombi_region!=t$recombi_region),]
+sum(t$recombi_all!=ttt$recombi_snps, na.rm=T)
+t[which(t$recombi_all!=ttt$recombi_snps),]
+ttt[which(t$recombi_all!=ttt$recombi_snps),]
+
+sum(t$LD!=ttt$LD, na.rm=T)
+sum(t$LD_sd!=ttt$LD_sd, na.rm=T)
+sum(t$maf!=ttt$maf, na.rm=T)
+sum(t$maf_sd!=ttt$maf_sd, na.rm=T)
+
+sum(t$rousset_mean!=ttt$rouss_mean, na.rm=T)
 

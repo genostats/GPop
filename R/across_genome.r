@@ -20,8 +20,6 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
   }
   else stop("'map' must be equal to 'B36' or 'B37' or a data frame")
   
-  if (thread>1) { RNGkind("L'Ecuyer-CMRG"); cl <- makeForkCluster(nnodes=thread); }
-  
   if (is.character(bed))
   {
     snps <- read.table(paste(bed, '.bim', sep=''))
@@ -47,9 +45,13 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
 	} else if (unit=='base')
 	{
 	  temp <- data.frame(chr=i, start=seq(0, as.integer(ceiling( max(w$pos)/sliding )*sliding), by=sliding), end=NA, index.start=NA, index.end=NA)
-	  temp$end <- temp$start + windows
-	  temp$index.start <- sapply(temp$start, function(i) which.min( ifelse( w$pos>=i, w$pos, Inf ) ) )
-	  temp$index.end <- sapply(temp$end, function(i) which.max( ifelse(w$pos<i, w$pos, -Inf) ) )
+	  temp$end <- temp$start + windows	 
+      tt <- apply(cbind(temp$start,temp$end), 1, function(x) {
+	                      ww <- ifelse( w$pos>=x[1] & w$pos<x[2], w$pos, NA )
+						  if (sum(!is.na(ww))>0) return( c(which.min(ww), which.max(ww)) )
+						  else return(rep(NA,2)) } )  
+	  temp$index.start <- tt[1,]
+	  temp$index.end <- tt[2,]
 	} else stop("'unit' must be equal to 'base' or 'indices'")
 	
 	temp$recombi_snps <- apply(cbind(temp$start, temp$end), 1, function(x) mean( map$rate.cM.Mb[ map$chr==i & map$base>=x[1] & map$base<=x[2] ] ) )
@@ -80,18 +82,19 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
   {
     if (class(bed) == "bed.matrix") {
 	  time <- paste(c('temp_gaston.pop', strsplit(date(), ' ')[[1]][strsplit(date(), ' ')[[1]]!='']), collapse='_')
-      for (i in unique(bed@snps$chr)) write.bed.matrix(select.snps(bed, chr==i), paste(c('temp_gaston.pop', time, 'chr', i), collapse='_'), rds=NULL)
+	  write.bed.matrix(bed, time, rds=NULL)
+	  bed <- time
     }
-	bed <-  paste(c('temp_gaston.pop', time, 'chr'), collapse='_')
+	
     RNGkind("L'Ecuyer-CMRG")
     cl <- makeForkCluster(nnodes=thread)
   
-	result[,-(1:8)] <- matrix( parRapply(cl, cbind(result$chr, result$start, result$end), function(r) {
-	  #if (is.character(bed))
-	  x <- select.snps(read.bed.matrix(paste(c(bed, r[1]), collapse='_')), chr==r[1] & pos>=r[2] & pos<r[3])
-      #else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==r[1] & pos>=r[2] & pos<r[3])	
+	result[,-(1:8)] <- matrix( parRapply(cl, cbind(result$chr, result$start, result$end, result$index.start, result$index.end), function(xx) {
+	  if (is.na(xx[4]) | is.na(xx[5])) return(rep(NA, 5+length(relatedness)*length(FUN)))
+	  if (is.character(bed)) x <- gaston.pop:::read.bed.matrix.part(bed, beg=xx[4], end=xx[5])
+      else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==xx[1] & pos>=xx[2] & pos<xx[3])	
 
-	  if(ncol(x)==0) return(rep(NA, 4+length(relatedness)*length(FUN)))
+	  if(ncol(x)==0) return(rep(NA, 5+length(relatedness)*length(FUN)))
       if (ncol(x)>0) {
 	    standardize(x) <- "mu_sigma"
         if (!is.null(LD.thin) & ncol(x)>1) l <- LD.thin(x, LD.thin, extract=TRUE)
@@ -109,21 +112,24 @@ app.genome <- function(bed, couple, FUN=mean, relatedness=GRM, windows, unit=c("
       r <- c(r, sd(x@snps$maf) )
 
 	  standardize(x) <- 'p'
-      for (rel in relatedness)
+      for (i in 1:length(relatedness))
       {
-        app <- rel(x)
-		for (f in FUN) {
-		  t <- app.pairs(app, couple, FUN=f)
-		  if (length(t) >1) {r <- c(r, NA); warning("FUN element(s) must be function with result value of length 1"); }
+        app <- relatedness[[i]](x)
+		for (j in 1:length(FUN)) {
+		  t <- app.pairs(app, couple, FUN=FUN[[j]])
+		   if (length(t)>1) warning("FUN element(s) must be function with result value of length 1")
 		  else  r <- c(r, t)
 		}
       }
-      return(r) }), ncol=length(rel)*length(f), byrow=TRUE)
+      return(r) }), ncol=5+length(relatedness)*length(FUN), byrow=TRUE)
     stopCluster(cl)
+	file.remove(paste(time, 'bed', sep='.'))
+	file.remove(paste(time, 'bim', sep='.'))
+	file.remove(paste(time, 'fam', sep='.'))
   } else {
     for (k in 1:nrow(result))
 	{
-	  if (is.character(bed)) x <- select.snps(read.bed.matrix(bed), chr==result$chr[k] & pos>=result$start[k] & pos<result$end[k])
+	  if (is.character(bed)) x <- gaston.pop:::read.bed.matrix.part(bed, beg=result$index.start[k], end=result$index.end[k])
       else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==result$chr[k] & pos>=result$start[k] & pos<result$end[k])	
 
 	  if(ncol(x)==0) next
