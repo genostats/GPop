@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 #include <iostream>
 #include <fstream>
-#include "gaston.h"
+#include "matrix4.h"
 
 using namespace Rcpp;
 

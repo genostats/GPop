@@ -2,11 +2,11 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
 {
   ## Verif
   if (!is.function(FUN) & !is.list(FUN)) stop('"FUN" argument must be a function of a list of functions')
-  if (is.list(FUN)) for (i in 1:length(FUN)) if (!is.function(FUN[i])) stop('"FUN" argument must be a function of a list of functions')
+  if (is.list(FUN)) for (i in 1:length(FUN)) if (!is.function(FUN[[i]])) stop('"FUN" argument must be a function of a list of functions')
   if (is.function(FUN)) { f <- as.character(substitute(FUN)); FUN <- list(FUN); names(FUN) <- ifelse(length(f)>1, 'function1', f); }
   
   if (!is.function(relatedness)) stop('"relatedness" argument must be a function')
-  if (is.list(relatedness)) for (i in 1:length(relatedness)) if (!is.function(relatedness[i])) stop(relatedness)
+  if (is.list(relatedness)) for (i in 1:length(relatedness)) if (!is.function(relatedness[[i]])) stop(relatedness)
   if (is.function(relatedness)) { f <- as.character(substitute(relatedness)); relatedness <- list(relatedness); names(relatedness) <- ifelse(length(f)>1, 'relatedness1', f); }
 
   # load of genetic map
@@ -117,7 +117,7 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
 	  if(ncol(x)==0) return(rep(NA, 5+length(relatedness)*length(FUN)))
       if (ncol(x)>0) {
 	    standardize(x) <- "mu_sigma"
-        if (!is.null(LD.thin) & ncol(x)>1) l <- LD.thin(x, LD.thin, extract=TRUE)
+        if (!is.null(LD.thin) & ncol(x)>1) x <- LD.thin(x, LD.thin, extract=TRUE)
         r <- ncol(x)
         #if (sum(map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos)>0)  t$recombi <- map[[paste('chr', unique(x@snps$chr), sep='')]]( map[[paste('chr', unique(x@snps$chr), sep='')]]$rate.cM.Mb[ map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos ], na.rm=TRUE)
       }
@@ -155,7 +155,7 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
 	  if(ncol(x)==0) next
       if (ncol(x)>0) {
         standardize(x) <- 'mu_sigma'
-        if (!is.null(LD.thin) & ncol(x)>1) l <- LD.thin(x, LD.thin, extract=TRUE)
+        if (!is.null(LD.thin) & ncol(x)>1) x <- LD.thin(x, LD.thin, extract=TRUE)
         result$num[k] <- ncol(x)
         #if (sum(map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos)>0)  t$recombi <- map[[paste('chr', unique(x@snps$chr), sep='')]]( map[[paste('chr', unique(x@snps$chr), sep='')]]$rate.cM.Mb[ map[[paste('chr', unique(x@snps$chr), sep='')]]$base %in% x@snps$pos ], na.rm=TRUE)
       }

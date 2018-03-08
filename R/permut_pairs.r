@@ -18,7 +18,7 @@ app.permut <- function(app, permut.pairs, group=rep(1:nrow(app)), FUN, unpairs=F
   if (!is.list(fixed.pairs) & !is.null(fixed.pairs)) fixed.pairs <- list(fixed.pairs)
   
   if (is.list(fixed.pairs)) tt <- c(list(permut.pairs), fixed.pairs) else tt <- permut.pairs
-  if (unpairs) app_pairs <- app_unpairs(app, tt, FUN=FUN) else app_pairs <- app_pairs(app, tt, FUN=FUN)
+  if (unpairs) app_pairs <- app.unpairs(app, tt, FUN=FUN) else app_pairs <- app.pairs(app, tt, FUN=FUN)
   
   t <- rep(NA, n)
   
@@ -32,7 +32,7 @@ app.permut <- function(app, permut.pairs, group=rep(1:nrow(app)), FUN, unpairs=F
     r <- parLapply(cl, rep(floor(B/thread),thread), function(n) replicate(n, {
 	           for (i in unique(group)) t[which(group==i)] <- sample(permut.pairs[which(group==i)], replace=FALSE)
 			   if (is.list(fixed.pairs)) tt <- c(list(t), fixed.pairs) else tt <- t
-			   if (unpairs) z <- app_unpairs(app, tt, FUN=FUN) else z <- app_pairs(app, tt, FUN=FUN)
+			   if (unpairs) z <- app.unpairs(app, tt, FUN=FUN) else z <- app.pairs(app, tt, FUN=FUN)
                return(z)  } ))
 	if (is.vector(r[[1]])) r <- unlist(r)
 	if (is.matrix(r[[1]])) r <- do.call(cbind, r)
@@ -40,7 +40,7 @@ app.permut <- function(app, permut.pairs, group=rep(1:nrow(app)), FUN, unpairs=F
   } else r <- replicate(B, {
                for (i in unique(group)) t[which(group==i)] <- sample(permut.pairs[which(group==i)], replace=FALSE)
 			   if (is.list(fixed.pairs)) tt <- c(list(t), fixed.pairs) else tt <- t
-			   if (unpairs) z <- app_unpairs(app, tt, FUN=FUN) else z <- app_pairs(app, tt, FUN=FUN)
+			   if (unpairs) z <- app.unpairs(app, tt, FUN=FUN) else z <- app.pairs(app, tt, FUN=FUN)
                return(z)  } )
 			   
   return(list(app_pairs=app_pairs, permut=r, twosided.p = mean(abs(r-mean(r))>abs(app_pairs-mean(r))),
