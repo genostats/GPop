@@ -36,11 +36,19 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
     snps <- read.table(paste(bed, '.bim', sep=''))
   } else if (class(bed) == "bed.matrix")
   {
-    snps <- bed@snps
+    snps <- bed@snps	
   } else {
     stopCluster(cl)
 	stop('"bed" must be a string or a bed.matrix.') 
   }
+  temp <- order(snps$chr, snps$pos)
+  if (sum(temp!=1:nrow(snps))>0)
+  {
+    warning('SNPs are not ordered')
+	snps <- snps[temp,]
+	if (is.character(bed)) bed <- read.bed.matrix(bed)[,temp] else bed <- bed[,temp]
+  }
+  snps$index <- 1:nrow(snps)
  
   result <- NULL
   for (i in unique(snps$chr))
@@ -48,11 +56,10 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
     w <- snps[snps$chr==i,]
     if (unit=='indices')
 	{
-	  temp <- data.frame(chr=i, start=NA, end=NA, index.start= seq(1, floor((nrow(w)-1)/sliding)*sliding, by=sliding), index.end=NA)
-	  temp$index.end <- temp$index.start + windows
-	  temp$index.end[nrow(temp)] <- nrow(w)
-	  temp$start <- w$pos[temp$index.start]
-	  temp$end <- w$pos[temp$index.end]
+	  temp <- data.frame(chr=i, start=NA, end=NA, index.start= w$index[seq(1, floor((nrow(w)-1)/sliding)*sliding, by=sliding)], index.end=NA)
+	  temp$index.end <- sapply(temp$index.start, function(x) min(x + windows, w$index[nrow(w)]) )
+	  temp$start <- snps$pos[temp$index.start]
+	  temp$end <- snps$pos[temp$index.end]
 	} else if (unit=='base')
 	{
 	  temp <- data.frame(chr=i, start=seq(0, as.integer(ceiling( max(w$pos)/sliding )*sliding), by=sliding), end=NA, index.start=NA, index.end=NA)
@@ -61,8 +68,8 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
 	                      ww <- ifelse( w$pos>=x[1] & w$pos<x[2], w$pos, NA )
 						  if (sum(!is.na(ww))>0) return( c(which.min(ww), which.max(ww)) )
 						  else return(rep(NA,2)) } )  
-	  temp$index.start <- tt[1,]
-	  temp$index.end <- tt[2,]
+	  temp$index.start <- w$index[tt[1,]]
+	  temp$index.end <- w$index[tt[2,]]
 	} else stop("'unit' must be equal to 'base' or 'indices'")
 	
 	temp$recombi_snps <- apply(cbind(temp$start, temp$end), 1, function(x) mean( map$rate.cM.Mb[ map$chr==i & map$base>=x[1] & map$base<=x[2] ] ) )
