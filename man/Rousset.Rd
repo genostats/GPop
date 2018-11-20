@@ -6,12 +6,13 @@
 \description{
   Compute the Rousset relatedness coefficient Matrix}
 
-\usage{ Rousset(x, which.snps, het_het=0.5, autosome.only = TRUE, chunk = 1L) }
+\usage{ Rousset(x, which.snps, het_het=0.5, share_het_het=1, autosome.only = TRUE, chunk = 1L) }
 
 \arguments{
   \item{x}{ A \code{\link{bed.matrix}} }
   \item{which.snps}{ Logical vector, giving which snps to use in the computation.  The default is to use all autosomal SNPs}
   \item{het_het}{ Proportion value of identical variants between pairs of heterozygous individuals}
+  \item{share_het_het}{ Number of alleles sharing between pairs of heterozygous individuals}
   \item{autosome.only}{ If \code{TRUE}, only autosomal SNPs will be considered. }
   \item{chunk}{ Parameter for the parallelization: how many SNPs are treated by each task}
 }
@@ -27,13 +28,25 @@
 }
 
 \value{
-  A list of three.
+  A list of seven.
   
   \code{Rousset} element is the Rousset relatedness coefficient Matrix which is a symmetric square matrix of dimension equal to the number of individuals.
   
   \code{F} element contains the matrix of \eqn{Q_{ij}} values given in details section.
   
   \code{Qm} element is the \eqn{Q_m} value given in details section.
+  
+  \code{Nsnp} element is a symmetric square matrix of dimension equal to the number of individuals which contains the number of SNPs available
+              by pairs
+  
+  \code{SHare0} element is the Matrix of SNP proportion sharing 0 allele between two individuals which is a symmetric square matrix of dimension
+                equal to the number of individuals
+  
+  \code{SHare1} element is the Matrix of SNP proportion sharing 1 allele between two individuals which is a symmetric square matrix of dimension
+                equal to the number of individuals. By default, pairs of heterozygous individuals are considered to share 1 allele.
+  
+  \code{SHare2} element is the Matrix of SNP proportion sharing 2 alleles between two individuals which is a symmetric square matrix of dimension
+                equal to the number of individuals
 }
 
 \author{ Claire Dandine-Roulland }
