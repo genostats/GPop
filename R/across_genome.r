@@ -60,7 +60,7 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
 	  temp$index.end <- sapply(temp$index.start, function(x) min(x + windows, w$index[nrow(w)]) )
 	  temp$start <- snps$pos[temp$index.start]
 	  temp$end <- snps$pos[temp$index.end]
-	} else if (unit=='base')
+	} else if (unit=='bases')
 	{
 	  temp <- data.frame(chr=i, start=seq(0, as.integer(ceiling( max(w$pos)/sliding )*sliding), by=sliding), end=NA, index.start=NA, index.end=NA)
 	  temp$end <- temp$start + windows	 
@@ -93,6 +93,10 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
   result$LD_sd <- NA
   result$maf <- NA
   result$maf_sd <- NA
+  result$H <- NA
+  result$H_sd <- NA
+  result$Hz <- NA
+  result$Hz_sd <- NA
   
   w <- names(relatedness)
   ww <- names(FUN)
@@ -117,11 +121,11 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
     #clusterCall(cl, function() library(gaston.pop))
   
 	result[,-(1:8)] <- matrix( parRapply(cl, cbind(result$chr, result$start, result$end, result$index.start, result$index.end), function(xx) {
-	  if (is.na(xx[4]) | is.na(xx[5])) return(rep(NA, 5+length(relatedness)*length(FUN)))
+	  if (is.na(xx[4]) | is.na(xx[5])) return(rep(NA, 9+length(relatedness)*length(FUN)))
 	  if (is.character(bed)) x <- gaston.pop:::read.bed.matrix.part(bed, beg=xx[4], end=xx[5])
       else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==xx[1] & pos>=xx[2] & pos<xx[3])	
 
-	  if(ncol(x)==0) return(rep(NA, 5+length(relatedness)*length(FUN)))
+	  if(ncol(x)==0) return(rep(NA, 9+length(relatedness)*length(FUN)))
       if (ncol(x)>0) {
 	    standardize(x) <- "mu_sigma"
         if (!is.null(LD.thin) & ncol(x)>1) x <- LD.thin(x, LD.thin, extract=TRUE)
@@ -137,6 +141,10 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
       r <- c(r, sd(L) )
       r <- c(r, mean(x@snps$maf) )
       r <- c(r, sd(x@snps$maf) )
+      r <- c(r, mean(2*x@snps$maf*(1-x@snps$maf)) )
+      r <- c(r, sd(2*x@snps$maf*(1-x@snps$maf)) )
+      r <- c(r, mean(x@snps$hz) )
+      r <- c(r, sd(x@snps$hz) )
 
 	  standardize(x) <- 'p'
       for (i in 1:length(relatedness))
@@ -148,7 +156,7 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
 		  else  r <- c(r, t)
 		}
       }
-      return(r) }), ncol=5+length(relatedness)*length(FUN), byrow=TRUE)
+      return(r) }), ncol=9+length(relatedness)*length(FUN), byrow=TRUE)
     stopCluster(cl)
 	file.remove(paste(time, 'bed', sep='.'))
 	file.remove(paste(time, 'bim', sep='.'))
@@ -174,6 +182,10 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
       result$LD_sd[k] <- sd(L)
       result$maf[k] <- mean(x@snps$maf)
       result$maf_sd[k] <- sd(x@snps$maf)
+      result$H[k] <- mean(mean(2*x@snps$maf*(1-x@snps$maf)))
+      result$H_sd[k] <- sd(2*x@snps$maf*(1-x@snps$maf))
+      result$Hz[k] <- mean(x@snps$hz)
+      result$Hz_sd[k] <- sd(x@snps$hz)
 
 	  standardize(x) <- 'p'
       for (i in 1:length(relatedness))

@@ -47,6 +47,10 @@
   \code{LD} end \code{LD_sd}, mean and standard deviation of LD in genomic region
   
   \code{maf} end \code{maf_sd}, mean and standard deviation of maf in genomic region
+  
+  \code{H} end \code{H_sd}, mean and standard deviation of Heterogosity in genomic region
+  
+  \code{Hz} end \code{Hz_sd}, mean and standard deviation of heterozygous individuals proportion in genomic region
 }
 
 \author{ Claire Dandine-Roulland }

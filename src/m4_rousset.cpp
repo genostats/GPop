@@ -2,8 +2,8 @@
 #include <Rcpp.h>
 #include <RcppParallel.h>
 #include <iostream>
-#include "gaston/matrix4.h"
-#include "gaston/m4_kinship_type.h"
+#include "matrix4.h"
+#include "m4_kinship_type.h"
 
 using namespace Rcpp;
 using namespace RcppParallel;

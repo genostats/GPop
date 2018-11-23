@@ -1,6 +1,6 @@
 #include <Rcpp.h>
 #include <iostream>
-#include "gaston/matrix4.h"
+#include "matrix4.h"
 
 using namespace Rcpp;
 

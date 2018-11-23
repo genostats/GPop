@@ -3,7 +3,7 @@
 #include <RcppParallel.h>
 #include <iostream>
 #include <ctime>
-#include "gaston/matrix4.h"
+#include "matrix4.h"
 
 using namespace Rcpp;
 using namespace RcppParallel;
