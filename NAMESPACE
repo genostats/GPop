@@ -3,7 +3,7 @@ import(methods)
 import(gaston)
 importFrom("haplo.stats", "haplo.em")
 
-useDynLib(gaston.pop, .registration = TRUE)
+useDynLib(GPop, .registration = TRUE)
 
 export(Rousset)
 export(Fst)
