@@ -1,4 +1,4 @@
-Package: gaston.pop
+Package: GPop
 Type: Package
 Title: Gaston package extension for genetic population applications
 Version: 1.0
