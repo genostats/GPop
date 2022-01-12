@@ -15,7 +15,7 @@ Rousset <- function(x, which.snps, het_het=0.5, share_het_het=1, autosome.only =
   if(!is.logical(which.snps) | length(which.snps) != ncol(x))
     stop("which.snps must be a Logical vector of length ncol(x)")
 
-  K <- .Call('gg_Rousset', PACKAGE = 'gaston.pop', x@bed, which.snps, het_het, share0_het_het, share1_het_het, share2_het_het, chunk) 
+  K <- .Call('gg_Rousset', PACKAGE = 'GPop', x@bed, which.snps, het_het, share0_het_het, share1_het_het, share2_het_het, chunk) 
 
   if(!is.null(x@ped$id)) {
     if(anyDuplicated(x@ped$id) == 0) 
