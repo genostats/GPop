@@ -118,11 +118,11 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
     #clusterExport(cl, c("result", "relatedness", "FUN", "LD", "bed", "couple", "lib"), envir=environment())
 	#clusterCall(cl, function() .libPaths(lib))
     #clusterCall(cl, function() library(gaston))
-    #clusterCall(cl, function() library(gaston.pop))
+    #clusterCall(cl, function() library(GPop))
   
 	result[,-(1:8)] <- matrix( parRapply(cl, cbind(result$chr, result$start, result$end, result$index.start, result$index.end), function(xx) {
 	  if (is.na(xx[4]) | is.na(xx[5])) return(rep(NA, 9+length(relatedness)*length(FUN)))
-	  if (is.character(bed)) x <- gaston.pop:::read.bed.matrix.part(bed, beg=xx[4], end=xx[5])
+	  if (is.character(bed)) x <- gaston.utils:::read.bed.matrix.part(bed, beg=xx[4], end=xx[5])
       else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==xx[1] & pos>=xx[2] & pos<xx[3])	
 
 	  if(ncol(x)==0) return(rep(NA, 9+length(relatedness)*length(FUN)))
@@ -164,7 +164,7 @@ app.genome <- function(bed, FUN, relatedness, windows, sliding, unit=c("bases", 
   } else {
     for (k in 1:nrow(result))
 	{
-	  if (is.character(bed)) x <- gaston.pop:::read.bed.matrix.part(bed, beg=result$index.start[k], end=result$index.end[k])
+	  if (is.character(bed)) x <- gaston.utils:::read.bed.matrix.part(bed, beg=result$index.start[k], end=result$index.end[k])
       else if (class(bed) == "bed.matrix") x <- select.snps(bed, chr==result$chr[k] & pos>=result$start[k] & pos<result$end[k])	
 
 	  if(ncol(x)==0) next

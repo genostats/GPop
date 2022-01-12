@@ -55,7 +55,7 @@ read.bed.matrix.part <- function(basename, bed = paste(basename, ".bed", sep="")
       stop("beg (", beg, ") and end (", end, ") values incompatible with ", bim, " file (", nrow(bim), " rows)")
 
     if(verbose) cat("Reading", bed, "\n")
-    bed <- .Call('read_bed_file_part', PACKAGE = "gaston.pop", bed, nrow(ped), beg, end)
+    bed <- .Call('read_bed_file_part', PACKAGE = "GPop", bed, nrow(ped), beg, end)
 
     snp <- snp[beg:end, ]
     x <- new("bed.matrix", bed = bed, snps = snp, ped = ped,                            

@@ -16,7 +16,7 @@ Fst <- function(x, pop, beg = 1, end = ncol(x))
   c <- hb/2
   
   # Compute genotype counts in each population
-  N <- .Call("gg_Fst_countbypop", PACKAGE = "gaston.pop", x@bed, as.numeric(as.factor(pop)), beg-1, end-1)
+  N <- .Call("gg_Fst_countbypop", PACKAGE = "GPop", x@bed, as.numeric(as.factor(pop)), beg-1, end-1)
   
   # n
   ni <- N$N0+N$N1+N$N2
